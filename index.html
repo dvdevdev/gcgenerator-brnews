@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gerador de GC • Brasil News</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c130f; --card:#141d17; --card2:#1a261e; --line:#25352a;
+  --text:#e9f4ec; --muted:#8da594; --green:#24912c; --green2:#3ddc4d; --warn:#f2b84b; --err:#ff6b6b;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Montserrat,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+body{min-height:100vh}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:#0a100c;position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:10px}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--green2);box-shadow:0 0 12px var(--green2)}
+h1{font-size:17px;margin:0;font-weight:800;letter-spacing:.2px}
+h1 small{font-weight:500;color:var(--muted);margin-left:6px}
+.pill{font-size:12px;padding:5px 10px;border-radius:99px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.ok{color:var(--green2);border-color:#245a2b}
+.pill.warn{color:var(--warn);border-color:#6b5320}
+.layout{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:20px;padding:20px;max-width:1500px;margin:0 auto;align-items:start}
+.left{position:sticky;top:70px}
+.stage{background:#000;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 10px 40px #0008}
+.stage canvas{display:block;width:100%;height:auto}
+.transport{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+.hint{font-size:12px;color:var(--muted);margin-left:auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:1.4px;color:var(--green2);margin:0 0 14px;font-weight:800}
+label{display:block;font-size:13px;font-weight:500;margin:0 0 6px;color:#cfe2d4}
+.row{margin-bottom:14px}
+.row:last-child{margin-bottom:0}
+.inline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+input[type=text],textarea,input[type=number],select{
+  width:100%;background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:10px 12px;font:inherit;font-size:15px;outline:none}
+input[type=text]:focus,textarea:focus,input[type=number]:focus,select:focus{border-color:var(--green)}
+textarea{resize:vertical;min-height:92px}
+.count{font-size:11px;color:var(--muted);text-align:right;margin-top:4px}
+.check{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;font-weight:500;margin:0}
+.check input{width:20px;height:20px;accent-color:var(--green)}
+input[type=range]{width:100%;accent-color:var(--green)}
+.rangehead{display:flex;justify-content:space-between;align-items:baseline}
+.rangehead b{font-weight:500;color:var(--green2);font-size:13px}
+.colorrow{display:flex;gap:10px;align-items:center}
+input[type=color]{width:54px;height:42px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--card2);cursor:pointer}
+.colorrow input[type=text]{width:110px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text);background:var(--card2);border:1px solid var(--line);border-radius:99px;padding:5px 10px 5px 6px;cursor:pointer}
+.chip i{width:16px;height:16px;border-radius:50%;border:1px solid #fff4}
+.chip:hover{border-color:var(--green)}
+.btn{font:inherit;font-weight:800;font-size:14px;color:var(--text);background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:11px 18px;cursor:pointer}
+.btn:hover{border-color:var(--green)}
+.btn.primary{background:var(--green);border-color:var(--green);color:#fff}
+.btn.primary:hover{background:#2aa733}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.big{width:100%;padding:14px;font-size:15px}
+.num{width:90px !important}
+.note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:8px}
+.prog{height:10px;background:var(--card2);border-radius:99px;overflow:hidden;margin-top:12px;display:none}
+.prog>div{height:100%;width:0;background:linear-gradient(90deg,var(--green),var(--green2))}
+.status{font-size:13px;margin-top:10px;min-height:18px;color:var(--muted);line-height:1.45}
+.status.err{color:var(--err)}
+.status.ok{color:var(--green2)}
+.dl{display:none;margin-top:10px;text-align:center;text-decoration:none}
+@media (max-width:980px){
+  .layout{grid-template-columns:1fr;padding:12px}
+  .left{position:sticky;top:56px;z-index:4;background:var(--bg);padding-bottom:8px}
+  .hint{display:none}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="dot"></span><h1>Gerador de GC <small>Brasil News</small></h1></div>
+  <div id="fontStatus" class="pill">Carregando fonte…</div>
+</header>
+
+<main class="layout">
+  <section class="left">
+    <div class="stage"><canvas id="cv" width="1920" height="1080"></canvas></div>
+    <div class="transport">
+      <button class="btn primary" id="btnIn">▶ Entrar</button>
+      <button class="btn" id="btnOut">◀ Sair</button>
+      <span class="hint">Pré-visualização em tempo real • 1920×1080</span>
+    </div>
+  </section>
+
+  <section class="right">
+    <div class="card">
+      <h2>Texto do GC</h2>
+      <div class="row">
+        <label for="title">Título</label>
+        <input type="text" id="title" maxlength="120" value="ÚLTIMA HORA" autocomplete="off">
+        <div class="count"><span id="titleCount">0</span>/120 • título que não couber na barra rola automaticamente</div>
+      </div>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="upper" checked> Título em MAIÚSCULAS</label>
+      </div>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="hasSub" checked> Esta matéria tem subtítulo</label>
+      </div>
+      <div class="row" id="subWrap">
+        <label for="sub">Subtítulo / notícia</label>
+        <textarea id="sub" maxlength="600">Digite aqui o subtítulo da matéria. Se o texto for grande demais para caber em duas linhas, ele vira um letreiro rolante automaticamente.</textarea>
+        <div class="count"><span id="subCount">0</span>/600 • texto maior que 2 linhas vira letreiro (ticker)</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Aparência e posição</h2>
+      <div class="row">
+        <label for="bgColor">Cor de fundo do vídeo (para chroma key)</label>
+        <div class="colorrow">
+          <input type="color" id="bgColor" value="#ff00ff">
+          <input type="text" id="bgHex" value="#FF00FF" maxlength="7" spellcheck="false">
+        </div>
+        <div class="chips" id="chips">
+          <button type="button" class="chip" data-c="#ff00ff"><i style="background:#ff00ff"></i>Magenta</button>
+          <button type="button" class="chip" data-c="#0000ff"><i style="background:#0000ff"></i>Azul</button>
+          <button type="button" class="chip" data-c="#00ffff"><i style="background:#00ffff"></i>Ciano</button>
+          <button type="button" class="chip" data-c="#000000"><i style="background:#000000"></i>Preto</button>
+          <button type="button" class="chip" data-c="#ffffff"><i style="background:#ffffff"></i>Branco</button>
+        </div>
+        <div class="note">O GC é verde: magenta ou azul evitam conflito na hora de tirar o fundo.</div>
+      </div>
+      <div class="row">
+        <div class="rangehead"><label for="minW">Largura mínima da barra</label><b id="minWv"></b></div>
+        <input type="range" id="minW" min="500" max="1360" step="1" value="1013">
+      </div>
+      <div class="row">
+        <div class="rangehead"><label for="posX">Posição horizontal</label><b id="posXv"></b></div>
+        <input type="range" id="posX" min="0" max="700" step="2" value="160">
+      </div>
+      <div class="row">
+        <div class="rangehead"><label for="posY">Distância da borda inferior</label><b id="posYv"></b></div>
+        <input type="range" id="posY" min="0" max="700" step="2" value="110">
+      </div>
+      <div class="row">
+        <div class="rangehead"><label for="tickSpeed">Velocidade do letreiro (ticker)</label><b id="tickSpeedv"></b></div>
+        <input type="range" id="tickSpeed" min="60" max="320" step="10" value="140">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Exportar vídeo MP4 • 1920×1080</h2>
+      <div class="row">
+        <label>Duração do vídeo (entrada + GC parado + saída)</label>
+        <div class="inline">
+          <input type="number" class="num" id="durMin" min="0" max="10" value="1"> <span>min</span>
+          <input type="number" class="num" id="durSec" min="0" max="59" value="0"> <span>s</span>
+        </div>
+      </div>
+      <div class="row">
+        <label for="fps">Quadros por segundo</label>
+        <select id="fps"><option value="30" selected>30 fps</option><option value="60">60 fps</option></select>
+      </div>
+      <button class="btn primary big" id="btnExport">Gerar e baixar MP4</button>
+      <button class="btn big" id="btnCancel" style="display:none;margin-top:8px">Cancelar</button>
+      <div class="prog" id="prog"><div id="progBar"></div></div>
+      <div class="status" id="status"></div>
+      <a class="btn primary big dl" id="dl" download="gc.mp4">Baixar o MP4 novamente</a>
+      <div class="note">A animação de entrada acontece no início do vídeo e a de saída no final. Duração de 4 s a 10 min. Mantenha esta aba aberta e visível durante a exportação. Funciona em Chrome, Edge e Safari recentes.</div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+'use strict';
+
+/* ============ Constantes de layout (convertidas do SVG do Brasil News) ============ */
+const W = 1920, H = 1080;
+const GREEN = '#24912C', DARK = '#0B6D19';
+const G = {
+  logoW: 202.92, boxH: 182.0, logoR: 28.36,
+  barX: 213.92, headHsub: 112.34, subY0: 112.28, subY1: 183.2,
+  totalSub: 183.2, totalNo: 182.0, rBR: 39.74,
+  padL: 18.6, padR: 64, subPadL: 23.6, subPadR: 48,
+  logoCX: 101.46, logoCY: 87.2
+};
+const LOGO_SCALE = 0.4003583 * 0.065312;
+const TITLE_SIZE = 96, TITLE_WEIGHT = 800, TITLE_MIN = 64;
+const SUB_SIZE = 23, SUB_LINE = 26, TICK_SIZE = 29;
+const MAX_RIGHT = W - 40;
+
+/* ============ Tempos da animação (segundos) ============ */
+const INTRO_END = 1.5, OUTRO_END = 1.1, TICKER_T0 = 1.0, TITLE_T0 = 0.9;
+const MIN_DUR = 4, MAX_DUR = 600;
+
+/* ============ Logo (vetor original do SVG) ============ */
+const D_BRASIL = 'M1315,16L1280,140L1241,292L1459,292L1477,226L1348,226L1345,225L1343,222L1343,217L1355,175L1360,152L1398,16L1315,16ZM1271,16L1204,16L1203,17L1190,16L1189,17L1167,94L1167,98L1165,102L1161,121L1153,148L1153,152L1147,171L1147,175L1136,214L1135,222L1131,234L1117,292L1198,292L1199,291L1233,157L1237,146L1240,131L1244,120L1247,105L1259,65L1268,29L1272,18L1271,16ZM301,291L384,291L401,235L404,221L408,211L410,201L413,197L416,196L435,196L439,198L471,290L649,290L680,242L684,240L783,240L786,241L789,246L794,290L838,290L839,291L881,290L834,16L751,16L662,138L584,249L568,274L563,277L558,275L553,265L533,217L529,210L523,193L527,189L545,184L559,178L575,168L588,156L602,137L612,114L617,85L615,67L611,55L607,48L596,36L584,28L570,22L553,18L545,18L535,16L382,16L354,106L353,113L348,126L344,143L339,156L338,163L335,170L334,177L331,184L301,291ZM771,102L773,105L774,121L782,176L781,183L777,185L722,185L719,184L717,181L718,176L730,158L760,107L764,102L767,101L771,102ZM431,130L446,78L450,71L453,70L501,70L508,71L519,75L525,81L527,85L528,99L522,114L515,122L504,129L485,134L436,134L433,133L431,130ZM97,16L87,43L87,46L75,80L75,83L73,86L65,115L63,118L63,121L61,124L61,127L49,163L21,262L18,269L17,276L13,286L12,293L178,293L179,292L191,292L192,291L207,290L224,286L246,278L259,271L276,258L286,247L294,235L302,216L305,201L305,188L301,172L294,161L283,152L277,150L275,148L274,144L276,141L294,133L306,124L316,113L325,97L330,77L330,66L328,56L323,45L313,34L306,29L287,21L268,17L261,17L260,16L97,16ZM114,231L114,226L123,198L125,188L127,185L127,182L130,178L133,177L154,177L155,178L187,177L188,178L195,178L209,183L214,188L216,192L217,203L216,208L212,216L202,226L194,230L180,234L169,234L168,235L119,235L116,234L114,231ZM146,118L159,74L162,69L165,68L217,68L218,69L225,69L234,72L240,78L242,82L242,93L238,103L230,112L222,117L213,120L199,122L151,122L148,121L146,118ZM1133,37L1112,24L1091,17L1068,13L1041,12L1040,13L1026,13L1025,14L1010,15L990,20L970,28L947,43L934,56L928,64L920,78L916,89L913,103L913,118L917,133L921,141L928,150L936,157L955,168L988,180L1013,187L1027,193L1037,202L1039,206L1039,217L1035,224L1030,229L1019,234L1008,236L994,236L983,234L970,229L964,225L955,216L946,201L944,193L882,226L887,243L892,253L899,263L911,274L928,284L956,293L968,295L978,295L979,296L1010,296L1036,292L1058,285L1076,276L1091,265L1102,254L1111,242L1117,231L1122,217L1124,207L1124,183L1121,172L1116,162L1109,153L1102,147L1079,134L1058,126L1026,117L1009,110L999,101L997,96L997,91L1001,81L1012,72L1029,68L1045,68L1061,72L1073,79L1082,88L1090,102L1147,55L1140,44L1133,37Z';
+const D_NEWS = 'M180,315L170,341L170,344L168,347L146,414L146,417L131,462L126,482L122,492L122,495L118,505L116,515L114,518L97,576L185,576L204,513L224,438L226,435L229,434L233,436L244,462L250,473L296,576L369,576L370,575L379,575L380,576L386,560L388,550L395,531L401,508L428,425L428,422L465,315L381,315L336,450L333,454L330,455L327,454L325,451L324,446L304,401L269,315L268,316L198,316L197,315L181,316L180,315ZM722,575L820,575L874,473L881,462L892,440L896,438L899,439L901,442L901,504L902,505L902,538L903,539L904,576L1003,576L1033,510L1077,422L1105,371L1141,315L1052,315L1018,378L974,465L970,467L967,466L965,463L967,347L968,346L968,318L969,317L968,315L894,315L840,402L806,459L803,460L799,458L798,450L799,449L799,436L800,435L805,371L806,370L806,362L807,361L812,314L729,314L726,366L725,367L725,383L724,384L724,407L723,408L722,575ZM713,315L712,314L491,315L454,420L454,423L447,442L445,452L440,465L440,468L430,498L429,505L427,508L419,538L407,575L659,575L673,531L673,528L679,512L678,511L526,511L520,512L516,510L515,505L526,469L528,466L531,465L659,465L676,407L551,407L547,405L546,399L556,370L560,368L698,368L713,315ZM1362,346L1349,333L1340,327L1325,320L1295,312L1281,311L1280,310L1266,310L1265,309L1225,311L1195,317L1173,325L1149,339L1130,357L1121,370L1115,383L1112,395L1112,413L1114,421L1119,431L1130,443L1148,454L1165,461L1207,473L1227,482L1237,492L1238,495L1237,507L1227,518L1212,524L1205,525L1181,524L1167,520L1151,510L1140,497L1136,489L1135,484L1133,482L1063,516L1068,533L1075,545L1090,560L1101,567L1114,573L1137,580L1164,584L1176,584L1177,585L1214,584L1245,579L1274,569L1286,563L1298,555L1320,533L1330,515L1335,497L1336,480L1334,467L1329,456L1324,449L1314,440L1299,431L1261,417L1222,406L1212,401L1204,392L1203,388L1204,382L1206,378L1213,371L1227,365L1238,363L1260,364L1274,368L1284,373L1297,385L1303,396L1366,354L1362,346Z';
+const P_BRASIL = new Path2D(D_BRASIL), P_NEWS = new Path2D(D_NEWS);
+
+const FF = 'Montserrat, "Segoe UI", Roboto, Arial, sans-serif';
+const fTitle = s => `${TITLE_WEIGHT} ${s}px ${FF}`;
+const fSub = `400 ${SUB_SIZE}px ${FF}`;
+const fTick = `400 ${TICK_SIZE}px ${FF}`;
+
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const seg = (t, s, d) => clamp((t - s) / d, 0, 1);
+const easeOutCubic = x => 1 - Math.pow(1 - x, 3);
+const easeOutQuart = x => 1 - Math.pow(1 - x, 4);
+const easeInCubic = x => x * x * x;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ============ Parâmetros do formulário ============ */
+function readParams() {
+  return {
+    title: $('title').value,
+    upper: $('upper').checked,
+    hasSub: $('hasSub').checked,
+    sub: $('sub').value,
+    bg: /^#[0-9a-f]{6}$/i.test($('bgColor').value) ? $('bgColor').value : '#ff00ff',
+    minW: +$('minW').value,
+    x: +$('posX').value,
+    bottom: +$('posY').value,
+    speed: +$('tickSpeed').value
+  };
+}
+
+/* ============ Medição e layout ============ */
+const mctx = document.createElement('canvas').getContext('2d');
+
+function wrapLines(text, maxW) {
+  const words = text.split(' ');
+  const lines = [];
+  let cur = '';
+  for (const w of words) {
+    const t = cur ? cur + ' ' + w : w;
+    if (!cur || mctx.measureText(t).width <= maxW) cur = t;
+    else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+function computeLayout(P) {
+  const maxBarW = Math.max(300, MAX_RIGHT - (P.x + G.barX));
+  const text = (P.upper ? P.title.toUpperCase() : P.title).trim();
+  let fs = TITLE_SIZE;
+  mctx.font = fTitle(fs);
+  let tw = mctx.measureText(text || ' ').width;
+  const maxTw = maxBarW - G.padL - G.padR * 0.6;
+  let titleTicker = false;
+  if (tw > maxTw) {
+    fs = Math.max(TITLE_MIN, fs * maxTw / tw);
+    mctx.font = fTitle(fs);
+    tw = mctx.measureText(text || ' ').width;
+    if (tw > maxTw) titleTicker = true;
+  }
+  const barW = titleTicker ? maxBarW : Math.min(Math.max(P.minW, tw + G.padL + G.padR), maxBarW);
+  const total = P.hasSub ? G.totalSub : G.totalNo;
+  const L = {
+    text, fs, tw, barW, total, titleTicker, hasSub: P.hasSub, mode: 'none',
+    gcX: P.x, gcY: H - P.bottom - total
+  };
+  if (P.hasSub) {
+    const s = P.sub.replace(/\s+/g, ' ').trim();
+    if (!s) {
+      L.mode = 'empty';
+    } else {
+      const avail = barW - G.subPadL - G.subPadR;
+      mctx.font = fSub;
+      const lines = wrapLines(s, avail);
+      const overflow = lines.some(l => mctx.measureText(l).width > avail + 0.5);
+      if (lines.length <= 2 && !overflow) {
+        L.mode = 'static'; L.lines = lines;
+      } else {
+        mctx.font = fTick;
+        L.mode = 'ticker'; L.tickText = s; L.tickW = mctx.measureText(s).width; L.tickGap = 240;
+      }
+    }
+  }
+  return L;
+}
+
+/* ============ Desenho ============ */
+function rr(ctx, x, y, w, h, r) {
+  const tl = r.tl || 0, tr = r.tr || 0, br = r.br || 0, bl = r.bl || 0;
+  ctx.beginPath();
+  ctx.moveTo(x + tl, y);
+  ctx.lineTo(x + w - tr, y);
+  if (tr) ctx.arcTo(x + w, y, x + w, y + tr, tr); else ctx.lineTo(x + w, y);
+  ctx.lineTo(x + w, y + h - br);
+  if (br) ctx.arcTo(x + w, y + h, x + w - br, y + h, br); else ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x + bl, y + h);
+  if (bl) ctx.arcTo(x, y + h, x, y + h - bl, bl); else ctx.lineTo(x, y + h);
+  ctx.lineTo(x, y + tl);
+  if (tl) ctx.arcTo(x, y, x + tl, y, tl); else ctx.lineTo(x, y);
+  ctx.closePath();
+}
+
+function drawLogo(ctx) {
+  ctx.save();
+  ctx.translate(G.logoCX, G.logoCY);
+  ctx.scale(LOGO_SCALE, LOGO_SCALE);
+  ctx.translate(-3104.166667, -1245.833333);
+  ctx.scale(4.166667, 4.166667);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.lineWidth = 10; ctx.strokeStyle = 'rgb(6,16,6)';
+  const g1 = ctx.createLinearGradient(12, 12, 12, 296);
+  g1.addColorStop(0, 'rgb(120,255,53)'); g1.addColorStop(0.38, 'rgb(53,233,0)');
+  g1.addColorStop(0.72, 'rgb(19,201,0)'); g1.addColorStop(1, 'rgb(7,152,0)');
+  ctx.fillStyle = g1; ctx.fill(P_BRASIL, 'evenodd'); ctx.stroke(P_BRASIL);
+  const g2 = ctx.createLinearGradient(97, 309, 97, 585);
+  g2.addColorStop(0, 'rgb(255,255,255)'); g2.addColorStop(0.42, 'rgb(238,238,238)');
+  g2.addColorStop(0.74, 'rgb(199,199,199)'); g2.addColorStop(1, 'rgb(165,165,165)');
+  ctx.fillStyle = g2; ctx.fill(P_NEWS, 'evenodd'); ctx.stroke(P_NEWS);
+  ctx.restore();
+}
+
+const scrollSlots = {};
+/* letreiro rolante genérico: o.text, o.font, o.textW, o.gap, o.x0, o.y0, o.clipW, o.h, o.baseY, o.e, o.speed, o.alpha */
+function drawScroll(ctx, slot, o) {
+  let s = scrollSlots[slot];
+  if (!s) { const c = document.createElement('canvas'); s = scrollSlots[slot] = { c, x: c.getContext('2d') }; }
+  const clipW = Math.max(40, Math.round(o.clipW)), h = Math.ceil(o.h);
+  if (s.c.width !== clipW || s.c.height !== h) { s.c.width = clipW; s.c.height = h; }
+  const c = s.x;
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.globalCompositeOperation = 'source-over';
+  c.clearRect(0, 0, clipW, h);
+  c.font = o.font; c.fillStyle = '#fff'; c.textBaseline = 'alphabetic';
+  const period = o.textW + o.gap;
+  const base0 = clipW - o.e * o.speed;
+  if (base0 >= 0) {
+    c.fillText(o.text, base0, o.baseY);
+  } else {
+    const b = ((base0 % period) + period) % period - period;
+    for (let x = b; x < clipW; x += period) c.fillText(o.text, x, o.baseY);
+  }
+  const f = Math.min(24, clipW / 4);
+  c.globalCompositeOperation = 'destination-in';
+  const gr = c.createLinearGradient(0, 0, clipW, 0);
+  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(f / clipW, 'rgba(0,0,0,1)');
+  gr.addColorStop(1 - f / clipW, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = gr; c.fillRect(0, 0, clipW, h);
+  c.globalCompositeOperation = 'source-over';
+  ctx.save();
+  ctx.globalAlpha = o.alpha;
+  ctx.drawImage(s.c, o.x0, o.y0);
+  ctx.restore();
+}
+
+function drawFrame(ctx, L, st, bg, speed) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+  if (st.tIn < 0) return;
+
+  const tIn = st.tIn, tOut = st.tOut;
+  let pLogo = easeOutCubic(seg(tIn, 0, 0.55));
+  let pHead = easeOutQuart(seg(tIn, 0.2, 0.7));
+  let pSub = easeOutQuart(seg(tIn, 0.45, 0.7));
+  let aTitle = easeOutCubic(seg(tIn, 0.75, 0.5));
+  let aSub = easeOutCubic(seg(tIn, 1.0, 0.5));
+  if (tOut >= 0) {
+    const fade = 1 - easeInCubic(seg(tOut, 0, 0.3));
+    aTitle = Math.min(aTitle, fade); aSub = Math.min(aSub, fade);
+    pSub = Math.min(pSub, 1 - easeInCubic(seg(tOut, 0.12, 0.5)));
+    pHead = Math.min(pHead, 1 - easeInCubic(seg(tOut, 0.3, 0.55)));
+    pLogo = Math.min(pLogo, 1 - easeInCubic(seg(tOut, 0.65, 0.45)));
+  }
+
+  ctx.save();
+  ctx.translate(L.gcX, L.gcY);
+
+  /* caixa do logo */
+  if (pLogo > 0.001) {
+    ctx.save();
+    const vh = G.boxH * pLogo;
+    ctx.beginPath(); ctx.rect(-1, G.boxH - vh, G.logoW + 2, vh + 1); ctx.clip();
+    ctx.fillStyle = DARK;
+    rr(ctx, 0, 0, G.logoW, G.boxH, { tl: G.logoR }); ctx.fill();
+    drawLogo(ctx);
+    ctx.restore();
+  }
+
+  const bx = G.barX;
+
+  /* barra do título */
+  if (pHead > 0.001) {
+    ctx.save();
+    ctx.beginPath(); ctx.rect(bx - 1, -1, L.barW * pHead + 1, L.total + 2); ctx.clip();
+    ctx.fillStyle = GREEN;
+    if (L.hasSub) ctx.fillRect(bx, 0, L.barW, G.headHsub);
+    else { rr(ctx, bx, 0, L.barW, G.totalNo, { br: G.rBR }); ctx.fill(); }
+    if (aTitle > 0.001 && L.text) {
+      ctx.globalAlpha = aTitle;
+      ctx.fillStyle = '#fff';
+      ctx.font = fTitle(L.fs);
+      ctx.textBaseline = 'alphabetic';
+      const capH = 0.7 * L.fs;
+      const center = (L.hasSub ? G.headHsub : G.totalNo) / 2;
+      const base = center + capH / 2 + (L.hasSub ? 8 * L.fs / TITLE_SIZE : 0);
+      if (L.titleTicker) {
+        drawScroll(ctx, 'title', { text: L.text, font: fTitle(L.fs), textW: L.tw, gap: 200,
+          x0: bx + G.padL, y0: 0, clipW: L.barW - G.padL - 24, h: L.hasSub ? G.headHsub : G.totalNo,
+          baseY: base, e: Math.max(0, tIn - TITLE_T0), speed, alpha: aTitle });
+      } else {
+        ctx.fillText(L.text, bx + G.padL - (1 - aTitle) * 36, base);
+      }
+    }
+    ctx.restore();
+  }
+
+  /* barra do subtítulo */
+  if (L.hasSub && pSub > 0.001) {
+    ctx.save();
+    ctx.beginPath(); ctx.rect(bx - 1, G.subY0 - 2, L.barW * pSub + 1, G.subY1 - G.subY0 + 4); ctx.clip();
+    ctx.fillStyle = DARK;
+    rr(ctx, bx, G.subY0 - 0.5, L.barW, G.subY1 - G.subY0 + 0.5, { br: G.rBR }); ctx.fill();
+    if (aSub > 0.001) {
+      if (L.mode === 'static') {
+        ctx.globalAlpha = aSub;
+        ctx.fillStyle = '#fff';
+        ctx.font = fSub;
+        ctx.textBaseline = 'alphabetic';
+        const n = L.lines.length;
+        const cy = (G.subY0 + G.subY1) / 2 - 4;
+        const y0 = cy - (n - 1) * SUB_LINE / 2 + 8 + (1 - aSub) * 14;
+        L.lines.forEach((ln, i) => ctx.fillText(ln, bx + G.subPadL, y0 + i * SUB_LINE));
+      } else if (L.mode === 'ticker') {
+        drawScroll(ctx, 'sub', { text: L.tickText, font: fTick, textW: L.tickW, gap: L.tickGap,
+          x0: G.barX + 16, y0: G.subY0, clipW: L.barW - 42, h: G.subY1 - G.subY0,
+          baseY: (G.subY1 - G.subY0) / 2 + 10, e: Math.max(0, tIn - TICKER_T0), speed, alpha: aSub });
+      }
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+/* ============ Pré-visualização ao vivo ============ */
+const cv = $('cv');
+const cctx = cv.getContext('2d');
+let P = readParams();
+let L = computeLayout(P);
+let dispW = L.barW;
+let clockT0 = performance.now() - 30000;
+let outT0 = null, hidden = false;
+let lastNow = performance.now();
+
+function liveState(now) {
+  if (hidden) return { tIn: -1, tOut: -1 };
+  const tIn = (now - clockT0) / 1000;
+  let tOut = -1;
+  if (outT0 !== null) {
+    tOut = (now - outT0) / 1000;
+    if (tOut >= OUTRO_END + 0.05) { hidden = true; return { tIn: -1, tOut: -1 }; }
+  }
+  return { tIn, tOut };
+}
+
+function frame(now) {
+  const dt = Math.min(0.1, (now - lastNow) / 1000);
+  lastNow = now;
+  dispW += (L.barW - dispW) * (1 - Math.exp(-dt * 9));
+  if (Math.abs(L.barW - dispW) < 0.1) dispW = L.barW;
+  drawFrame(cctx, Object.assign({}, L, { barW: dispW }), liveState(now), P.bg, P.speed);
+  requestAnimationFrame(frame);
+}
+
+function refresh() {
+  P = readParams();
+  L = computeLayout(P);
+  $('titleCount').textContent = $('title').value.length;
+  $('subCount').textContent = $('sub').value.length;
+  $('subWrap').style.display = P.hasSub ? '' : 'none';
+  $('minWv').textContent = P.minW + ' px';
+  $('posXv').textContent = P.x + ' px';
+  $('posYv').textContent = P.bottom + ' px';
+  $('tickSpeedv').textContent = P.speed + ' px/s';
+}
+
+['title', 'upper', 'hasSub', 'sub', 'minW', 'posX', 'posY', 'tickSpeed'].forEach(id => {
+  $(id).addEventListener('input', refresh);
+  $(id).addEventListener('change', refresh);
+});
+
+/* cor de fundo */
+function setBg(c) {
+  c = c.toLowerCase();
+  $('bgColor').value = c;
+  $('bgHex').value = c.toUpperCase();
+  refresh();
+}
+$('bgColor').addEventListener('input', e => setBg(e.target.value));
+$('bgHex').addEventListener('input', e => {
+  let v = e.target.value.trim();
+  if (v && v[0] !== '#') v = '#' + v;
+  if (/^#[0-9a-f]{6}$/i.test(v)) { $('bgColor').value = v.toLowerCase(); refresh(); }
+});
+$('chips').addEventListener('click', e => {
+  const b = e.target.closest('.chip');
+  if (b) setBg(b.dataset.c);
+});
+
+$('btnIn').addEventListener('click', () => { hidden = false; outT0 = null; clockT0 = performance.now(); });
+$('btnOut').addEventListener('click', () => { if (!hidden && outT0 === null) outT0 = performance.now(); });
+
+/* ============ Fontes ============ */
+async function ensureFonts() {
+  const sample = ($('title').value + $('sub').value + 'ÁÀÂÃÉÊÍÓÔÕÚÇáàâãéêíóôõúç');
+  const job = Promise.all([
+    document.fonts.load(fTitle(TITLE_SIZE), sample),
+    document.fonts.load(fSub, sample),
+    document.fonts.load(fTick, sample)
+  ]).catch(() => {});
+  await Promise.race([job, sleep(5000)]);
+  const ok = document.fonts.check(fTitle(TITLE_SIZE), 'A');
+  const el = $('fontStatus');
+  const real = [...document.fonts].some(f => f.family.replace(/"/g, '') === 'Montserrat' && f.status === 'loaded');
+  if (real) { el.textContent = 'Fonte Montserrat ✓'; el.className = 'pill ok'; }
+  else { el.textContent = 'Montserrat não carregou (sem internet?) • usando fonte alternativa'; el.className = 'pill warn'; }
+  return real || ok;
+}
+
+/* ============ Empacotador MP4 (H.264) ============ */
+const u32 = n => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255];
+const u16 = n => [(n >> 8) & 255, n & 255];
+const fcc = s => [...s].map(c => c.charCodeAt(0));
+function cat(parts) {
+  let n = 0; for (const p of parts) n += p.length;
+  const o = new Uint8Array(n); let k = 0;
+  for (const p of parts) { o.set(p, k); k += p.length; }
+  return o;
+}
+function box(type, ...parts) {
+  const body = cat(parts.map(p => p instanceof Uint8Array ? p : Uint8Array.from(p)));
+  return cat([Uint8Array.from([...u32(body.length + 8), ...fcc(type)]), body]);
+}
+const fbox = (type, ver, flags, ...parts) => box(type, [ver, (flags >> 16) & 255, (flags >> 8) & 255, flags & 255], ...parts);
+function u32array(vals) {
+  const o = new Uint8Array(vals.length * 4);
+  const dv = new DataView(o.buffer);
+  vals.forEach((v, i) => dv.setUint32(i * 4, v >>> 0));
+  return o;
+}
+
+function buildMp4(samples, avcC, w, h, fps) {
+  const N = samples.length, TS = 90000, delta = Math.round(TS / fps);
+  const dur = N * delta, movDur = Math.round(dur * 1000 / TS);
+  const MATRIX = [...u32(0x10000), ...u32(0), ...u32(0), ...u32(0), ...u32(0x10000), ...u32(0), ...u32(0), ...u32(0), ...u32(0x40000000)];
+  const ftyp = box('ftyp', fcc('isom'), u32(512), fcc('isom'), fcc('iso2'), fcc('avc1'), fcc('mp41'));
+  const dataSize = samples.reduce((a, s) => a + s.d.length, 0);
+
+  const sync = []; samples.forEach((s, i) => { if (s.key) sync.push(i + 1); });
+  const perChunk = Math.max(1, Math.round(fps));
+  const nChunks = Math.ceil(N / perChunk);
+  const stscEntries = [1, perChunk, 1];
+  if (N % perChunk) stscEntries.push(nChunks, N % perChunk, 1);
+
+  const buildMoov = (mdatStart) => {
+    const offs = []; let pos = mdatStart;
+    for (let c = 0; c < nChunks; c++) {
+      offs.push(pos);
+      for (let i = c * perChunk; i < Math.min(N, (c + 1) * perChunk); i++) pos += samples[i].d.length;
+    }
+    const mvhd = fbox('mvhd', 0, 0, u32(0), u32(0), u32(1000), u32(movDur), u32(0x10000), u16(0x0100), u16(0),
+      u32(0), u32(0), MATRIX, new Array(24).fill(0), u32(2));
+    const tkhd = fbox('tkhd', 0, 3, u32(0), u32(0), u32(1), u32(0), u32(movDur), u32(0), u32(0),
+      u16(0), u16(0), u16(0), u16(0), MATRIX, u32(w << 16), u32(h << 16));
+    const mdhd = fbox('mdhd', 0, 0, u32(0), u32(0), u32(TS), u32(dur), u16(0x55c4), u16(0));
+    const hdlr = fbox('hdlr', 0, 0, u32(0), fcc('vide'), u32(0), u32(0), u32(0), [...fcc('VideoHandler'), 0]);
+    const vmhd = fbox('vmhd', 0, 1, u16(0), u16(0), u16(0), u16(0));
+    const dinf = box('dinf', fbox('dref', 0, 0, u32(1), fbox('url ', 0, 1)));
+    const avc1 = box('avc1', new Array(6).fill(0), u16(1), u16(0), u16(0), new Array(12).fill(0),
+      u16(w), u16(h), u32(0x480000), u32(0x480000), u32(0), u16(1), new Array(32).fill(0), u16(0x18), u16(0xffff),
+      box('avcC', avcC));
+    const stsd = fbox('stsd', 0, 0, u32(1), avc1);
+    const stts = fbox('stts', 0, 0, u32(1), u32(N), u32(delta));
+    const stss = fbox('stss', 0, 0, u32(sync.length), u32array(sync));
+    const stsc = fbox('stsc', 0, 0, u32(stscEntries.length / 3), u32array(stscEntries));
+    const stsz = fbox('stsz', 0, 0, u32(0), u32(N), u32array(samples.map(s => s.d.length)));
+    const stco = fbox('stco', 0, 0, u32(nChunks), u32array(offs));
+    const stbl = box('stbl', stsd, stts, stss, stsc, stsz, stco);
+    const minf = box('minf', vmhd, dinf, stbl);
+    const mdia = box('mdia', mdhd, hdlr, minf);
+    const trak = box('trak', tkhd, mdia);
+    return box('moov', mvhd, trak);
+  };
+
+  const moov0 = buildMoov(0);
+  const mdatStart = ftyp.length + moov0.length + 8;
+  const moov = buildMoov(mdatStart);
+  const mdatHead = Uint8Array.from([...u32(dataSize + 8), ...fcc('mdat')]);
+  return new Blob([ftyp, moov, mdatHead, ...samples.map(s => s.d)], { type: 'video/mp4' });
+}
+
+/* ============ Exportação ============ */
+let exporting = false, cancelFlag = false, lastUrl = null;
+const setStatus = (msg, cls) => { const s = $('status'); s.textContent = msg; s.className = 'status' + (cls ? ' ' + cls : ''); };
+
+async function exportVideo() {
+  if (exporting) return;
+  if (!('VideoEncoder' in window) || !('VideoFrame' in window)) {
+    setStatus('Este navegador não tem suporte a WebCodecs. Use Chrome, Edge ou Safari recente.', 'err'); return;
+  }
+  const D = (+$('durMin').value || 0) * 60 + (+$('durSec').value || 0);
+  if (D < MIN_DUR || D > MAX_DUR) { setStatus(`A duração precisa ficar entre ${MIN_DUR} segundos e 10 minutos.`, 'err'); return; }
+  const fps = +$('fps').value;
+  const total = Math.round(D * fps);
+
+  exporting = true; cancelFlag = false;
+  $('btnExport').disabled = true; $('btnCancel').style.display = ''; $('dl').style.display = 'none';
+  $('prog').style.display = 'block'; $('progBar').style.width = '0%';
+  setStatus('Preparando…');
+
+  let enc = null;
+  try {
+    await ensureFonts();
+    const Px = readParams();
+    const Lx = computeLayout(Px);
+    const outStart = D - OUTRO_END - 0.15;
+
+    const samples = []; let avcC = null, encErr = null;
+    const base = { width: W, height: H, bitrate: 9_000_000, framerate: fps, avc: { format: 'avc' } };
+    const codecs = fps > 30 ? ['avc1.64002A', 'avc1.4D002A', 'avc1.42002A'] : ['avc1.640028', 'avc1.4D0028', 'avc1.420028', 'avc1.64002A'];
+    let cfg = null;
+    for (const c of codecs) {
+      try { const r = await VideoEncoder.isConfigSupported(Object.assign({ codec: c }, base)); if (r.supported) { cfg = Object.assign({ codec: c }, base); break; } } catch (_) {}
+    }
+    if (!cfg) throw new Error('Este navegador não consegue codificar H.264 em 1920×1080.');
+
+    enc = new VideoEncoder({
+      output: (chunk, meta) => {
+        const d = new Uint8Array(chunk.byteLength); chunk.copyTo(d);
+        samples.push({ d, key: chunk.type === 'key' });
+        if (!avcC && meta && meta.decoderConfig && meta.decoderConfig.description) {
+          const ds = meta.decoderConfig.description;
+          avcC = ds instanceof ArrayBuffer ? new Uint8Array(ds.slice(0)) : new Uint8Array(ds.buffer.slice(ds.byteOffset, ds.byteOffset + ds.byteLength));
+        }
+      },
+      error: e => { encErr = e; }
+    });
+    enc.configure(cfg);
+
+    const ec = document.createElement('canvas'); ec.width = W; ec.height = H;
+    const ectx = ec.getContext('2d', { alpha: false });
+    const t0 = performance.now();
+    let staticDrawn = false;
+
+    for (let i = 0; i < total; i++) {
+      if (cancelFlag) throw new Error('__cancel__');
+      if (encErr) throw encErr;
+      const t = i / fps;
+      const st = { tIn: t, tOut: t - outStart };
+      const isStatic = t > INTRO_END + 0.05 && st.tOut < 0 && Lx.mode !== 'ticker' && !Lx.titleTicker;
+      if (isStatic) { if (!staticDrawn) { drawFrame(ectx, Lx, st, Px.bg, Px.speed); staticDrawn = true; } }
+      else { drawFrame(ectx, Lx, st, Px.bg, Px.speed); staticDrawn = false; }
+      const vf = new VideoFrame(ec, { timestamp: Math.round(i * 1e6 / fps), duration: Math.round(1e6 / fps) });
+      enc.encode(vf, { keyFrame: i % (fps * 2) === 0 });
+      vf.close();
+      while (enc.encodeQueueSize > 8) { await sleep(1); if (encErr) throw encErr; }
+      if (i % 15 === 0) {
+        const pct = (i / total) * 100;
+        $('progBar').style.width = pct.toFixed(1) + '%';
+        const el = (performance.now() - t0) / 1000;
+        const eta = i > 30 ? Math.max(0, el / i * (total - i)) : null;
+        setStatus(`Gerando quadro ${i} de ${total} (${pct.toFixed(0)}%)` + (eta !== null ? ` • faltam ~${Math.ceil(eta)} s` : ''));
+        await sleep(0);
+      }
+    }
+    await enc.flush();
+    if (encErr) throw encErr;
+    enc.close(); enc = null;
+    if (!avcC || samples.length !== total) throw new Error('Falha ao finalizar o vídeo (quadros: ' + samples.length + '/' + total + ').');
+
+    setStatus('Montando o arquivo MP4…');
+    await sleep(0);
+    const blob = buildMp4(samples, avcC, W, H, fps);
+    window.__lastMp4 = blob;
+    if (lastUrl) URL.revokeObjectURL(lastUrl);
+    lastUrl = URL.createObjectURL(blob);
+    const name = 'gc-brasilnews-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.mp4';
+    const a = $('dl'); a.href = lastUrl; a.download = name; a.style.display = 'block';
+    $('progBar').style.width = '100%';
+    a.click();
+    setStatus(`Pronto! ${(blob.size / 1048576).toFixed(1)} MB • ${D} s • 1920×1080 • ${fps} fps. Se o download não começou, use o botão abaixo.`, 'ok');
+  } catch (e) {
+    if (e && e.message === '__cancel__') setStatus('Exportação cancelada.');
+    else setStatus('Erro ao exportar: ' + (e && e.message ? e.message : e), 'err');
+    $('prog').style.display = 'none';
+    try { if (enc && enc.state !== 'closed') enc.close(); } catch (_) {}
+  } finally {
+    exporting = false; $('btnExport').disabled = false; $('btnCancel').style.display = 'none';
+  }
+}
+$('btnExport').addEventListener('click', exportVideo);
+$('btnCancel').addEventListener('click', () => { cancelFlag = true; });
+
+/* gancho de teste */
+window.__gc = {
+  render(tIn, tOut, params) {
+    const pp = Object.assign(readParams(), params || {});
+    const LL = computeLayout(pp);
+    drawFrame(cctx, LL, { tIn, tOut: tOut === undefined ? -1 : tOut }, pp.bg, pp.speed);
+    return LL;
+  }
+};
+
+/* ============ Início ============ */
+refresh();
+requestAnimationFrame(frame);
+ensureFonts().then(refresh);
+if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', () => { refresh(); });
+})();
+</script>
+</body>
+</html>
